@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manifiesto de Anulaciones — Fillrate</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14181D;
+    --panel: #1D2229;
+    --panel-2: #232A32;
+    --line: #313A44;
+    --amber: #F2A93B;
+    --coral: #E85D4E;
+    --teal: #4FD1C5;
+    --violet: #8C7CF0;
+    --text: #EDEFF2;
+    --muted: #8B96A3;
+    --mono: 'IBM Plex Mono', monospace;
+    --disp: 'Archivo Expanded', sans-serif;
+    --body: 'Barlow', sans-serif;
+    --overlay-012: rgba(255,255,255,0.012);
+    --overlay-05: rgba(255,255,255,0.05);
+    --overlay-04: rgba(255,255,255,0.04);
+    --overlay-02: rgba(255,255,255,0.02);
+  }
+  :root[data-theme="light"]{
+    --bg: #F2F4F1;
+    --panel: #FFFFFF;
+    --panel-2: #EEF1EC;
+    --line: #DCE3D9;
+    --text: #16201A;
+    --muted: #6B7A72;
+    --overlay-012: rgba(0,0,0,0.02);
+    --overlay-05: rgba(0,0,0,0.06);
+    --overlay-04: rgba(0,0,0,0.05);
+    --overlay-02: rgba(0,0,0,0.025);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family: var(--body);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, var(--overlay-012) 40px);
+    transition: background-color .2s ease, color .2s ease;
+  }
+  .wrap{max-width:1280px; margin:0 auto; padding:28px 24px 60px;}
+
+  /* HEADER — manifiesto de envío */
+  .manifest-header{
+    border:1px solid var(--line);
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border-radius:4px;
+    padding:20px 24px;
+    display:flex; justify-content:space-between; align-items:flex-start; gap:20px;
+    position:relative; overflow:hidden;
+    flex-wrap:wrap;
+  }
+  .manifest-header::before{
+    content:"";
+    position:absolute; left:0; top:0; bottom:0; width:10px;
+    background: repeating-linear-gradient(180deg, var(--text) 0 3px, transparent 3px 7px);
+    opacity:0.35;
+  }
+  .h-title{padding-left:14px;}
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:2.5px; color:var(--amber);
+    text-transform:uppercase; margin-bottom:6px;
+  }
+  h1{
+    font-family:var(--disp); font-size:28px; margin:0; letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  .sub{color:var(--muted); font-size:13px; margin-top:6px; font-family:var(--mono);}
+  .meta-block{
+    text-align:right; font-family:var(--mono); font-size:12px; color:var(--muted);
+    padding-left:14px;
+  }
+  .meta-block b{color:var(--text); font-weight:600;}
+
+  /* HEADER ACTIONS — tema / pdf / compartir / estado */
+  .header-actions{display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+  .status-pill{
+    display:flex; align-items:center; gap:6px;
+    font-family:var(--mono); font-size:11px; color:var(--muted);
+    border:1px solid var(--line); border-radius:100px; padding:6px 12px;
+    background:var(--panel-2); white-space:nowrap;
+  }
+  .status-dot{width:7px; height:7px; border-radius:50%; background:var(--muted); flex-shrink:0;}
+  .status-dot.ok{background:var(--teal); box-shadow:0 0 0 3px rgba(79,209,197,0.18);}
+  .status-dot.err{background:var(--coral); box-shadow:0 0 0 3px rgba(232,93,78,0.18);}
+  .share-wrap{position:relative;}
+  .share-toast{
+    position:absolute; top:calc(100% + 6px); right:0; background:var(--text); color:var(--bg);
+    font-family:var(--mono); font-size:11px; padding:6px 10px; border-radius:4px; white-space:nowrap;
+    opacity:0; transform:translateY(-4px); pointer-events:none; transition:opacity .15s, transform .15s; z-index:20;
+  }
+  .share-toast.show{opacity:1; transform:translateY(0);}
+  .share-toast.err{background:var(--coral); color:#fff;}
+
+  /* Botones de acción (reutilizan estilo de carga original) */
+  .upload-btn{
+    font-family:var(--mono); font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    background:var(--panel-2); border:1px dashed var(--muted); color:var(--text);
+    padding:10px 16px; border-radius:3px; cursor:pointer; transition:.15s;
+  }
+  .upload-btn:hover{border-color:var(--amber); color:var(--amber);}
+  .upload-btn:disabled{opacity:.6; cursor:default; border-color:var(--muted); color:var(--muted);}
+
+  /* DATE FILTER */
+  .filter-row{
+    margin-top:16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding-top:12px; border-top:1px dashed var(--line);
+  }
+  .filter-row label{
+    font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;
+  }
+  .filter-row input[type="date"]{
+    font-family:var(--mono); font-size:12px; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line); border-radius:3px; padding:6px 8px;
+  }
+  .filter-row input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7);}
+  .clear-btn{
+    font-family:var(--mono); font-size:11px; color:var(--muted); background:none;
+    border:1px solid var(--line); border-radius:3px; padding:6px 10px; cursor:pointer;
+  }
+  .clear-btn:hover{color:var(--coral); border-color:var(--coral);}
+  #filterCount{font-family:var(--mono); font-size:11px; color:var(--amber);}
+
+  /* KPI STRIP */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:22px;
+  }
+  .kpi{
+    border:1px dashed var(--line); border-radius:4px; padding:16px 14px;
+    background:var(--panel);
+    position:relative;
+  }
+  .kpi::after{
+    content:""; position:absolute; top:-1px; bottom:-1px; right:-6px; width:1px;
+  }
+  .kpi .num{font-family:var(--mono); font-size:26px; font-weight:600; color:var(--text);}
+  .kpi .lbl{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:4px;}
+  .kpi.crit .num{color:var(--coral);}
+  .kpi.warn .num{color:var(--amber);}
+  .kpi.ok .num{color:var(--teal);}
+
+  /* SECTION */
+  section{margin-top:34px;}
+  .sec-head{
+    display:flex; align-items:baseline; gap:10px; margin-bottom:14px;
+    border-bottom:1px solid var(--line); padding-bottom:10px;
+  }
+  .sec-num{font-family:var(--mono); color:var(--amber); font-size:13px;}
+  .sec-title{font-family:var(--disp); font-size:17px; text-transform:uppercase; letter-spacing:0.5px;}
+  .sec-note{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted);}
+
+  .panel-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:18px;
+  }
+  .card h3{
+    font-family:var(--mono); font-size:12px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:1px; margin:0 0 14px 0; font-weight:500;
+  }
+  canvas{max-width:100%;}
+
+  /* Cause list rows (stamp style) */
+  .cause-row{
+    display:flex; align-items:center; gap:10px; padding:9px 0;
+    border-bottom:1px solid var(--overlay-05);
+  }
+  .cause-row:last-child{border-bottom:none;}
+  .cause-name{flex:1; font-size:13px;}
+  .cause-bar-track{flex:2; height:8px; background:var(--panel-2); border-radius:4px; overflow:hidden;}
+  .cause-bar-fill{height:100%; border-radius:4px;}
+  .cause-pct{font-family:var(--mono); font-size:13px; width:52px; text-align:right; color:var(--text);}
+  .cause-units{font-family:var(--mono); font-size:11px; width:78px; text-align:right; color:var(--muted);}
+
+  /* Table */
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{
+    text-align:left; font-family:var(--mono); font-size:10.5px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.8px; padding:8px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  td{padding:10px; border-bottom:1px solid var(--overlay-04); vertical-align:top;}
+  tr:hover td{background:var(--overlay-02);}
+  .rank{font-family:var(--mono); color:var(--amber); font-weight:600;}
+  .code-badge{
+    font-family:var(--mono); background:var(--panel-2); padding:2px 7px; border-radius:3px;
+    font-size:12px; letter-spacing:0.5px; border:1px solid var(--line);
+  }
+  .sector-tag{
+    font-family:var(--mono); font-size:10.5px; color:var(--violet); text-transform:uppercase;
+  }
+  .num-cell{font-family:var(--mono); text-align:right;}
+  .desc-cell{color:var(--text); max-width:340px;}
+
+  /* Code search */
+  .search-row{
+    display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  }
+  .search-row input[type="text"]{
+    flex:1; max-width:340px; font-family:var(--mono); font-size:13px;
+    background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    border-radius:3px; padding:9px 12px;
+  }
+  .search-row input[type="text"]:focus{outline:none; border-color:var(--teal);}
+  .search-row input[type="text"]::placeholder{color:var(--muted);}
+  #searchMeta{font-family:var(--mono); font-size:11px; color:var(--muted);}
+
+  footer{margin-top:40px; text-align:center; font-family:var(--mono); font-size:11px; color:var(--muted);}
+
+  @media (max-width:900px){
+    .kpi-strip{grid-template-columns:repeat(2,1fr);}
+    .panel-grid{grid-template-columns:1fr;}
+    .manifest-header{flex-direction:column;}
+    .meta-block{text-align:left;}
+    .header-actions{justify-content:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="manifest-header">
+    <div class="h-title">
+      <div class="eyebrow">Control de Anulaciones · Centro de Distribución</div>
+      <h1>Manifiesto de Fill Rate</h1>
+      <div class="sub">Causas · Categorías · Códigos de mayor impacto</div>
+      <div class="filter-row">
+        <label for="dateFrom">Desde</label>
+        <input type="date" id="dateFrom">
+        <label for="dateTo">Hasta</label>
+        <input type="date" id="dateTo">
+        <button class="clear-btn" id="clearDates">✕ Limpiar fechas</button>
+        <span id="filterCount"></span>
+      </div>
+    </div>
+    <div class="meta-block">
+      <div class="header-actions">
+        <div class="status-pill" id="statusPill"><span class="status-dot" id="statusDot"></span><span id="statusText">Cargando…</span></div>
+        <button class="upload-btn" id="themeToggle" type="button">☾ Modo Claro</button>
+        <button class="upload-btn" id="pdfBtn" type="button">⇩ Descargar PDF</button>
+        <div class="share-wrap">
+          <button class="upload-btn" id="shareBtn" type="button">⇪ Compartir</button>
+          <span class="share-toast" id="shareToast"></span>
+        </div>
+      </div>
+      <div>DOC N° <b id="docNum">—</b></div>
+      <div>Generado: <b id="genDate">—</b></div>
+      <div>Fuente: <b id="sourceLabel">—</b></div>
+    </div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi crit"><div class="num" id="kUnits">—</div><div class="lbl">Cajas anuladas</div></div>
+    <div class="kpi"><div class="num" id="kLines">—</div><div class="lbl">Líneas anuladas</div></div>
+    <div class="kpi warn"><div class="num" id="kPedidos">—</div><div class="lbl">Pedidos afectados</div></div>
+    <div class="kpi"><div class="num" id="kCodigos">—</div><div class="lbl">Códigos afectados</div></div>
+    <div class="kpi ok"><div class="num" id="kSectores">—</div><div class="lbl">Categorías afectadas</div></div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">01</span><span class="sec-title">Causas de Anulación</span>
+      <span class="sec-note">Total y % sobre cajas anuladas</span>
+    </div>
+    <div class="panel-grid">
+      <div class="card">
+        <h3>Detalle por causa</h3>
+        <div id="causeList"></div>
+      </div>
+      <div class="card">
+        <h3>Concentración de causas</h3>
+        <canvas id="causeDonut" height="260"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">02</span><span class="sec-title">Categorías Más Afectadas</span>
+      <span class="sec-note">Top 10 · total y % sobre unidades anuladas</span>
+    </div>
+    <div class="card">
+      <canvas id="categoryBar" height="110"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">03</span><span class="sec-title" id="top10Title">Top 10 Códigos de Mayor Impacto</span>
+      <span class="sec-note">Por cajas anuladas</span>
+    </div>
+    <div class="card">
+      <div class="search-row">
+        <input type="text" id="codeSearch" placeholder="Buscar por código o descripción de artículo…">
+        <span id="searchMeta"></span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Código</th><th>Descripción</th><th>Sector</th>
+            <th style="text-align:right">Cajas anuladas</th>
+            <th style="text-align:right">Pedidos afectados</th>
+          </tr>
+        </thead>
+        <tbody id="top10Body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>Manifiesto generado automáticamente a partir de <b>data.json</b>, publicado junto a este dashboard · Se actualiza reemplazando ese archivo, sin tocar este HTML.</footer>
+</div>
+
+<script>
+const PALETTE = ['#E85D4E','#F2A93B','#4FD1C5','#8C7CF0','#5B9BD5','#D4767B','#9FCB6B','#E0A96D','#6FB8C4','#B98CE8','#C4C464','#A0A8B0'];
+
+// Ruta del archivo de datos publicado junto a este HTML.
+// Formato esperado: [] de filas [fechaISO, pedido, codigo, descripcion, sector, status, unidades, cajas]
+// o { generated_at, source, rows:[...] }.
+const DATA_URL = './data.json';
+
+let ALL_ROWS = [];       // filas ya procesadas (solo anuladas) del data.json publicado
+let CURRENT_SOURCE = ''; // etiqueta de archivo(s) para mostrar
+let GENERATED_AT = null; // fecha de generación del data.json (si viene informada)
+let causeChart=null, catChart=null;
+
+function fmt(n){ return Number(n).toLocaleString('es-GT'); }
+
+function rowsToObjects(rawRows){
+  return rawRows.map(r=>({
+    fecha: r[0], pedido: r[1], codigo: r[2], descripcion: r[3],
+    sector: r[4], status: r[5], unidades: r[6], cajas: Number(r[7])||0
+  }));
+}
+
+// ---- Agregación a partir de filas (ya filtradas por fecha si aplica) ----
+function buildAggregates(rows){
+  let statusUnits={}, statusCajas={}, statusLines={};
+  let sectorUnits={}, sectorLines={};
+  let codigoUnits={}, codigoCajas={}, codigoPedidos={}, codigoDesc={}, codigoSector={};
+  let totalUnits=0, totalCajas=0, totalLines=0;
+  const pedidosSet=new Set(), sectoresSet=new Set(), codigosSet=new Set();
+
+  rows.forEach(row=>{
+    const {pedido, codigo, descripcion, sector, status, unidades, cajas} = row;
+    statusUnits[status]=(statusUnits[status]||0)+unidades;
+    statusCajas[status]=(statusCajas[status]||0)+(cajas||0);
+    statusLines[status]=(statusLines[status]||0)+1;
+    sectorUnits[sector]=(sectorUnits[sector]||0)+unidades;
+    sectorLines[sector]=(sectorLines[sector]||0)+1;
+    codigoUnits[codigo]=(codigoUnits[codigo]||0)+unidades;
+    codigoCajas[codigo]=(codigoCajas[codigo]||0)+(cajas||0);
+    if(!codigoPedidos[codigo]) codigoPedidos[codigo]=new Set();
+    codigoPedidos[codigo].add(pedido);
+    codigoDesc[codigo]=descripcion;
+    codigoSector[codigo]=sector;
+    totalUnits+=unidades; totalCajas+=(cajas||0); totalLines+=1;
+    pedidosSet.add(pedido); sectoresSet.add(sector); codigosSet.add(codigo);
+  });
+
+  const causas = Object.keys(statusUnits).map(k=>({label:k, units:statusUnits[k], cajas:statusCajas[k], lines:statusLines[k]}))
+    .sort((a,b)=>b.cajas-a.cajas);
+  const categorias = Object.keys(sectorUnits).map(k=>({label:k, units:sectorUnits[k], lines:sectorLines[k]}))
+    .sort((a,b)=>b.units-a.units);
+  const codigosFull = Object.keys(codigoUnits).map(k=>({
+      codigo:k, descripcion:codigoDesc[k], sector:codigoSector[k],
+      unidades:codigoUnits[k], cajas:codigoCajas[k], pedidos:codigoPedidos[k].size
+    })).sort((a,b)=>b.cajas-a.cajas);
+  codigosFull.forEach((c,i)=> c.rank = i+1);
+
+  return {
+    causas, categorias, codigosFull,
+    kpis:{
+      totalUnits, totalCajas, totalLines,
+      totalPedidos: pedidosSet.size,
+      totalCodigos: codigosSet.size,
+      totalSectores: sectoresSet.size
+    }
+  };
+}
+
+function getDateBounds(rows){
+  const fechas = rows.map(r=>r.fecha).filter(Boolean).sort();
+  if(fechas.length===0) return {min:'', max:''};
+  return {min: fechas[0], max: fechas[fechas.length-1]};
+}
+
+// ---- Orquesta: filtra por fecha, agrega, filtra tabla por búsqueda, renderiza ----
+function refresh(){
+  const fromVal = document.getElementById('dateFrom').value;
+  const toVal = document.getElementById('dateTo').value;
+
+  let rows = ALL_ROWS;
+  if(fromVal) rows = rows.filter(r=> !r.fecha || r.fecha >= fromVal);
+  if(toVal) rows = rows.filter(r=> !r.fecha || r.fecha <= toVal);
+
+  const filterCountEl = document.getElementById('filterCount');
+  if(fromVal || toVal){
+    filterCountEl.textContent = `Filtro activo: ${fmt(rows.length)} de ${fmt(ALL_ROWS.length)} líneas`;
+  } else {
+    filterCountEl.textContent = '';
+  }
+
+  const agg = buildAggregates(rows);
+
+  const searchVal = document.getElementById('codeSearch').value.trim().toLowerCase();
+  const titleEl = document.getElementById('top10Title');
+  const searchMetaEl = document.getElementById('searchMeta');
+  let tableRows;
+  if(searchVal){
+    tableRows = agg.codigosFull.filter(c=>
+      c.codigo.toLowerCase().includes(searchVal) || c.descripcion.toLowerCase().includes(searchVal)
+    ).slice(0,50);
+    titleEl.textContent = 'Resultados de Búsqueda';
+    searchMetaEl.textContent = `${fmt(tableRows.length)} coincidencia(s) de ${fmt(agg.codigosFull.length)} códigos`;
+  } else {
+    tableRows = agg.codigosFull.slice(0,10);
+    titleEl.textContent = 'Top 10 Códigos de Mayor Impacto';
+    searchMetaEl.textContent = '';
+  }
+
+  render(agg, tableRows);
+}
+
+function loadRows(rawRows, sourceLabel){
+  ALL_ROWS = rowsToObjects(rawRows);
+  CURRENT_SOURCE = sourceLabel;
+  document.getElementById('sourceLabel').textContent = sourceLabel;
+
+  const bounds = getDateBounds(ALL_ROWS);
+  document.getElementById('dateFrom').min = bounds.min;
+  document.getElementById('dateFrom').max = bounds.max;
+  document.getElementById('dateTo').min = bounds.min;
+  document.getElementById('dateTo').max = bounds.max;
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  document.getElementById('codeSearch').value = '';
+  document.getElementById('filterCount').textContent = '';
+
+  refresh();
+}
+
+function render(data, tableRows){
+  document.getElementById('docNum').textContent = 'FR-' + Math.floor(Math.random()*90000+10000);
+  document.getElementById('genDate').textContent = (GENERATED_AT || new Date()).toLocaleString('es-GT', {dateStyle:'medium', timeStyle:'short'});
+
+  document.getElementById('kUnits').textContent = fmt(data.kpis.totalCajas);
+  document.getElementById('kLines').textContent = fmt(data.kpis.totalLines);
+  document.getElementById('kPedidos').textContent = fmt(data.kpis.totalPedidos);
+  document.getElementById('kCodigos').textContent = fmt(data.kpis.totalCodigos);
+  document.getElementById('kSectores').textContent = fmt(data.kpis.totalSectores);
+
+  // ---- Cause list + donut (en cajas) ----
+  const totalUnits = data.kpis.totalUnits || 1;
+  const totalCajas = data.kpis.totalCajas || 1;
+  const causeList = document.getElementById('causeList');
+  causeList.innerHTML = '';
+  data.causas.forEach((c,i)=>{
+    const pct = (c.cajas/totalCajas*100);
+    const row = document.createElement('div');
+    row.className='cause-row';
+    row.innerHTML = `
+      <div class="cause-name">${c.label}</div>
+      <div class="cause-bar-track"><div class="cause-bar-fill" style="width:${pct.toFixed(1)}%; background:${PALETTE[i%PALETTE.length]}"></div></div>
+      <div class="cause-pct">${pct.toFixed(1)}%</div>
+      <div class="cause-units">${fmt(c.cajas)} cj.</div>
+    `;
+    causeList.appendChild(row);
+  });
+
+  if(causeChart) causeChart.destroy();
+  causeChart = new Chart(document.getElementById('causeDonut'), {
+    type:'doughnut',
+    data:{
+      labels: data.causas.map(c=>c.label),
+      datasets:[{
+        data: data.causas.map(c=>c.cajas),
+        backgroundColor: data.causas.map((c,i)=>PALETTE[i%PALETTE.length]),
+        borderColor:'#1D2229', borderWidth:2
+      }]
+    },
+    options:{
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(ctx)=>{
+          const pct=(ctx.parsed/totalCajas*100).toFixed(1);
+          return ` ${ctx.label}: ${fmt(ctx.parsed)} cj. (${pct}%)`;
+        }}}
+      },
+      cutout:'62%'
+    }
+  });
+
+  // ---- Category bar ----
+  if(catChart) catChart.destroy();
+  const cats = data.categorias.slice(0,10);
+  catChart = new Chart(document.getElementById('categoryBar'), {
+    type:'bar',
+    data:{
+      labels: cats.map(c=>c.label),
+      datasets:[{
+        label:'Unidades anuladas',
+        data: cats.map(c=>c.units),
+        backgroundColor: '#F2A93B',
+        borderRadius:3,
+        maxBarThickness:34
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(ctx)=>{
+          const pct=(ctx.parsed.x/totalUnits*100).toFixed(1);
+          return ` ${fmt(ctx.parsed.x)} u. (${pct}% del total)`;
+        }}}
+      },
+      scales:{
+        x:{ grid:{color:'rgba(128,128,128,0.15)'}, ticks:{color:'#8B96A3', font:{family:'IBM Plex Mono', size:10}} },
+        y:{ grid:{display:false}, ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text'), font:{family:'IBM Plex Mono', size:11}} }
+      }
+    }
+  });
+
+  // ---- Tabla de códigos (top 10 o resultados de búsqueda) ----
+  const tbody = document.getElementById('top10Body');
+  tbody.innerHTML = '';
+  if(tableRows.length===0){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">Sin resultados para el filtro/búsqueda actual.</td>`;
+    tbody.appendChild(tr);
+  }
+  tableRows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="rank">${String(r.rank).padStart(2,'0')}</td>
+      <td><span class="code-badge">${r.codigo}</span></td>
+      <td class="desc-cell">${r.descripcion}</td>
+      <td><span class="sector-tag">${r.sector}</span></td>
+      <td class="num-cell">${fmt(r.cajas)}</td>
+      <td class="num-cell">${fmt(r.pedidos)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ==================== CARGA AUTOMÁTICA DE DATOS (data.json) ====================
+// Ya no se sube ningún Excel manualmente: al abrir la página se intenta leer
+// automáticamente "data.json" publicado junto a este HTML. Para actualizar el
+// manifiesto solo hay que reemplazar ese archivo en el servidor/repositorio.
+
+function setStatus(kind, text){
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot' + (kind==='ok' ? ' ok' : kind==='err' ? ' err' : '');
+  txt.textContent = text;
+}
+
+async function cargarDatosAutomaticamente(){
+  setStatus('loading', 'Cargando datos…');
+  try{
+    const resp = await fetch(DATA_URL, {cache:'no-store'});
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const rawRows = Array.isArray(json) ? json : (json.rows || []);
+    if(!rawRows.length) throw new Error('data.json no contiene filas');
+
+    GENERATED_AT = json.generated_at ? new Date(json.generated_at) : new Date();
+    const label = json.source || 'data.json';
+    loadRows(rawRows, label);
+    setStatus('ok', 'Datos publicados ✓');
+  }catch(err){
+    GENERATED_AT = null;
+    loadRows([], '—');
+    setStatus('err', 'Error al cargar data.json: ' + err.message);
+  }
+}
+
+// ==================== TEMA CLARO / OSCURO ====================
+const THEME_KEY = 'fillrate-theme';
+
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = theme === 'light' ? '☀ Modo Oscuro' : '☾ Modo Claro';
+  try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
+}
+
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+  if(causeChart || catChart) refresh(); // re-pinta charts con los colores de eje del nuevo tema
+});
+
+(function initTheme(){
+  let saved = 'dark';
+  try{ saved = localStorage.getItem(THEME_KEY) || 'dark'; }catch(e){}
+  applyTheme(saved);
+})();
+
+// ==================== DESCARGAR PDF ====================
+const pdfBtn = document.getElementById('pdfBtn');
+pdfBtn.addEventListener('click', async ()=>{
+  const originalText = pdfBtn.textContent;
+  pdfBtn.disabled = true;
+  pdfBtn.textContent = '⏳ Generando…';
+  try{
+    const root = document.querySelector('.wrap');
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const canvas = await html2canvas(root, {scale:2, backgroundColor: bg, useCORS:true});
+    const imgData = canvas.toDataURL('image/png');
+
+    const { jsPDF } = window.jspdf;
+    const pageWidth = 210, pageHeight = 297;
+    const imgWidthMm = pageWidth;
+    const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    let heightLeft = imgHeightMm, position = 0;
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
+    heightLeft -= pageHeight;
+    while(heightLeft > 0){
+      position = heightLeft - imgHeightMm;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
+      heightLeft -= pageHeight;
+    }
+
+    const fecha = new Date().toISOString().slice(0,10);
+    pdf.save('Manifiesto_Fillrate_' + fecha + '.pdf');
+  }catch(err){
+    alert('No se pudo generar el PDF: ' + err.message);
+  }finally{
+    pdfBtn.disabled = false;
+    pdfBtn.textContent = originalText;
+  }
+});
+
+// ==================== COMPARTIR ====================
+async function copiarAlPortapapeles(texto){
+  try{
+    await navigator.clipboard.writeText(texto);
+    return true;
+  }catch(err){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = texto; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      return true;
+    }catch(err2){ return false; }
+  }
+}
+
+let shareToastTimer = null;
+function mostrarShareToast(mensaje, ok){
+  const toast = document.getElementById('shareToast');
+  toast.textContent = mensaje;
+  toast.classList.toggle('err', !ok);
+  toast.classList.add('show');
+  clearTimeout(shareToastTimer);
+  shareToastTimer = setTimeout(()=> toast.classList.remove('show'), 2500);
+}
+
+document.getElementById('shareBtn').addEventListener('click', async ()=>{
+  const datosCompartir = { title: document.title, text: 'Manifiesto de Anulaciones · Fill Rate', url: window.location.href };
+  try{
+    if(navigator.share){ await navigator.share(datosCompartir); return; }
+  }catch(err){ if(err && err.name === 'AbortError') return; }
+  const copiado = await copiarAlPortapapeles(datosCompartir.url);
+  mostrarShareToast(copiado ? 'Enlace copiado al portapapeles' : 'No se pudo copiar el enlace', copiado);
+});
+
+// ==================== FILTROS Y BÚSQUEDA (sin cambios funcionales) ====================
+document.getElementById('dateFrom').addEventListener('change', refresh);
+document.getElementById('dateTo').addEventListener('change', refresh);
+document.getElementById('clearDates').addEventListener('click', function(){
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  refresh();
+});
+document.getElementById('codeSearch').addEventListener('input', refresh);
+
+cargarDatosAutomaticamente();
+</script>
+</body>
+</html>

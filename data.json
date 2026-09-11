@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-07-20T18:30:00-06:00",
+  "source": "Fillrate_diario_20_07_2026.xlsx",
+  "rows": [
+    ["2026-07-20", "000000000209171665", "114063", "ALIMIAU ALIMENTO PARA GATOS ADULTO 3.3 LB SABOR PESCADO", "CDVIL02-Mascotas", "No Almacenado o en Canal", 20, 2],
+    ["2026-07-20", "000000000209171940", "2077438", "NUBE BLANCA PAPEL HIGIENICO 1000 H ULTRA SUAVE 6U", "CDVIL01-Crossdocking", "Quiebre de Stock", 16, 2],
+    ["2026-07-20", "000000000209171940", "63289", "ROSAL SERVILLETA CUADRADA 100 UND.", "CDVIL02-Desechables", "Quiebre de Stock", 10, 1],
+    ["2026-07-20", "000000000209208301", "100334", "LOS CEBOLLINES NACHOS ORIGINAL 430 GR.", "CDVIL02-ComestiblesGrandes", "Quiebre de Stock", 820, 82],
+    ["2026-07-20", "000000000209211083", "2081002", "TREBOLAC LECHE DESCREMADA CERO LACTOSA 946ML", "CDVIL02-Leches Tetra", "Producto en Averias", 36, 3],
+    ["2026-07-19", "000000000209150011", "2085725", "PERCUTTI HERMETICO RECTANGULAR 2500ML UNIDAD", "CDVIL02-ImportadoFidelizacion", "Emergencia - Almacenaje", 24, 3],
+    ["2026-07-19", "000000000209150022", "77966", "DONA PAULA VINO CABERNET SAUVIGNON 750M", "CDVIL01-Unidades Licores", "Emergencia - Almacenaje", 12, 1],
+    ["2026-07-19", "000000000209150033", "3696", "COLGATE CEPILLO DENTAL SMILES 1 UND. NIÑOS 2-5 AÑOS", "CDVIL01-CosmeticosControlados", "Quiebre de Stock", 12, 0]
+  ]
+}
